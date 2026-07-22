@@ -8,13 +8,14 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "nodemon server/index.js",
     "client": "cd client && npm start",
-    "build": "cd client && npm run build",
+    "build": "cd client && npm install && npm run build",
+    "setup": "node server/setup-admin.js",
     "install-all": "npm install && cd client && npm install && cd .."
   },
   "dependencies": {
     "express": "^4.18.2",
     "sqlite3": "^5.1.6",
-    "bcrypt": "^5.1.0",
+    "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",

@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const { db, initializeDatabase } = require('./database');
 
 const setupAdmin = async () => {

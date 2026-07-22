@@ -1,0 +1,12 @@
+# Railway / Nixpacks build configuration.
+# Installs both the server (root) and React client dependencies, builds the
+# client once at build time, then starts the server (which serves the client build).
+
+[phases.install]
+cmds = ["npm install", "cd client && npm install"]
+
+[phases.build]
+cmds = ["cd client && npm run build"]
+
+[start]
+cmd = "npm start"

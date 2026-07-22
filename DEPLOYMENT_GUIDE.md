@@ -1,124 +1,75 @@
-# Railway Deployment Guide - Step by Step
+# Railway Deployment Guide
 
-Follow these steps **exactly** to deploy to Railway.
-
-## Prerequisites
-- GitHub account (create at https://github.com if you don't have one)
-- Railway account (sign up at https://railway.app)
+The GitHub repo (`anzacbiscuits/shift-swap-platform`) and Railway build config
+are already set up. Follow these steps to get a live deployment.
 
 ---
 
-## STEP 1: Create GitHub Account (5 minutes)
+## STEP 1: Push the code to GitHub
 
-1. Go to https://github.com
-2. Click "Sign up"
-3. Enter email, create password, choose username
-4. Verify email
-5. Complete setup
-
----
-
-## STEP 2: Create GitHub Repository (2 minutes)
-
-1. Log in to GitHub
-2. Click "+" icon (top right) → "New repository"
-3. Name: `shift-swap-platform`
-4. **IMPORTANT**: Leave all checkboxes UNCHECKED
-5. Click "Create repository"
-6. **Copy the URL** shown
-
----
-
-## STEP 3: Push Code to GitHub (5 minutes)
-
-Open terminal and run:
+The repo remote is already configured. From the project folder, commit and push:
 
 ```bash
 cd ~/Desktop/shift-swap-platform
-
-git init
-git add .
-git commit -m "Initial commit: Shift swap platform"
-git remote add origin https://github.com/YOUR_USERNAME/shift-swap-platform.git
-git branch -M main
+git add -A
+git commit -m "Fix admin seeding and Railway build config"
 git push -u origin main
 ```
 
----
-
-## STEP 4: Sign Up for Railway (2 minutes)
-
-1. Go to https://railway.app
-2. Click "Sign Up"
-3. Click "Continue with GitHub"
-4. Authorize Railway
+(If this is the first push and you're prompted to log in, use your GitHub
+username and a personal access token as the password.)
 
 ---
 
-## STEP 5: Deploy to Railway (3 minutes)
+## STEP 2: Deploy on Railway
 
-1. Click "New Project"
-2. Click "Deploy from GitHub repo"
-3. Select `shift-swap-platform` repository
-4. Click "Deploy"
-
-Wait for build to complete (2-3 minutes).
+1. Go to https://railway.app and sign in with GitHub.
+2. New Project → Deploy from GitHub repo → select `shift-swap-platform`.
+3. Railway auto-detects the config (`nixpacks.toml`) and builds it.
 
 ---
 
-## STEP 6: Configure Environment Variables (2 minutes)
+## STEP 3: Set environment variables
 
-1. After deploy, click your project
-2. Click the `web` service
-3. Go to "Variables" tab
-4. Add these variables:
+In the service → **Variables** tab, add:
 
 ```
 NODE_ENV=production
-JWT_SECRET=shift-swap-secret-key-123456
+JWT_SECRET=<a long random string>
+ADMIN_EMAIL=arjun@psychiatry.health
+ADMIN_PASSWORD=<choose a strong password>
+ADMIN_NAME=Arjun Mahadevan
 ```
 
-5. Save
-
-App will redeploy automatically.
-
----
-
-## STEP 7: Get Your Live URL (1 minute)
-
-1. In Railway, go to "Settings"
-2. Look for "Domains"
-3. You'll see your live URL!
-4. Click it to open your app
+The admin account is created automatically on startup from these values, so
+admin login works immediately after deploy. Change ADMIN_PASSWORD from the old
+default.
 
 ---
 
-## STEP 8: Create Admin Account
+## STEP 4: Add a persistent volume (so data survives redeploys)
 
-The admin account is created when you run `npm run setup` locally, but you'll need to create it on the live app too.
+By default SQLite data is wiped on every redeploy. To keep users and swaps:
 
-1. Register as normal user
-2. Tell me the email
-3. I can help set you as admin on the live database
+1. In the service, add a **Volume** and set its mount path to `/data`.
+2. Add another variable: `DB_PATH=/data/shiftswap.db`
+3. Redeploy.
+
+Skip this only if you're just testing and don't mind data resetting.
+
+---
+
+## STEP 5: Get your live URL
+
+Service → **Settings** → **Networking** → **Generate Domain**. Open the URL and
+log in with your admin email/password.
 
 ---
 
 ## Troubleshooting
 
-### Build failed
-- Check Railway logs
-- Ensure all files are committed to GitHub
-- Try redeploying
-
-### App won't start
-- Check environment variables
-- Wait 2-3 minutes for startup
-- Check Rails logs
-
-### Database issues
-- Database auto-creates on first start
-- No setup needed on Railway
-
----
-
-**You're ready! Go create your GitHub account and repo, then deploy!**
+- **Build fails:** check the Railway build logs. The build installs client deps
+  and runs the React build via `nixpacks.toml`.
+- **Can't log in as admin:** confirm ADMIN_EMAIL / ADMIN_PASSWORD are set, then
+  check the deploy logs for the "Admin account seeded" line.
+- **Data disappears on redeploy:** you haven't attached a volume (see Step 4).

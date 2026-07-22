@@ -1,7 +1,7 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const dbPath = path.join(__dirname, 'shiftswap.db');
+const dbPath = process.env.DB_PATH || path.join(__dirname, 'shiftswap.db');
 const db = new sqlite3.Database(dbPath);
 
 const initializeDatabase = () => {
@@ -157,9 +157,36 @@ const dbAll = (sql, params = []) => {
   });
 };
 
+const bcrypt = require('bcryptjs');
+
+// Idempotently ensure an admin account exists on startup. Credentials come from
+// env vars (set these in Railway); defaults are provided for local testing.
+const seedAdmin = async () => {
+  const adminEmail = process.env.ADMIN_EMAIL || 'arjun@psychiatry.health';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'AdminPassword123!';
+  const adminName = process.env.ADMIN_NAME || 'Arjun Mahadevan';
+  try {
+    const existing = await dbGet('SELECT id FROM registrars WHERE email = ?', [adminEmail]);
+    if (existing) {
+      console.log(`Admin account already present (${adminEmail}).`);
+      return;
+    }
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    const adminId = Math.random().toString(36).substr(2, 9);
+    await dbRun(
+      'INSERT INTO registrars (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)',
+      [adminId, adminName, adminEmail, hashedPassword, 'admin']
+    );
+    console.log(`✅ Admin account seeded (${adminEmail}).`);
+  } catch (error) {
+    console.error('Error seeding admin account:', error);
+  }
+};
+
 module.exports = {
   db,
   initializeDatabase,
+  seedAdmin,
   dbRun,
   dbGet,
   dbAll
