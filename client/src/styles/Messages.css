@@ -1,0 +1,134 @@
+.messages-container {
+  padding: 2rem;
+}
+
+.messages-container h1 {
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+}
+
+.messages-layout {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  gap: 1.5rem;
+  height: 600px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.registrar-list {
+  border-right: 1px solid #e0e0e0;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.registrar-list h2 {
+  font-size: 1rem;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.registrar-item {
+  padding: 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+  transition: all 0.3s;
+  border-left: 3px solid transparent;
+}
+
+.registrar-item:hover { background: #f5f5f5; }
+
+.registrar-item.active {
+  background: #3498db;
+  color: white;
+  border-left-color: #2980b9;
+}
+
+.registrar-item strong { display: block; margin-bottom: 0.25rem; }
+.registrar-item small { display: block; font-size: 0.75rem; opacity: 0.8; }
+
+.conversation-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+
+.conversation-panel h2 {
+  font-size: 1.2rem;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 0.5rem;
+}
+
+.messages-list {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.message {
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  max-width: 80%;
+}
+
+.message.sent {
+  align-self: flex-end;
+  background: #3498db;
+  color: white;
+}
+
+.message.received {
+  align-self: flex-start;
+  background: #ecf0f1;
+  color: #333;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.message-header strong { font-size: 0.9rem; }
+.message-header small { font-size: 0.75rem; opacity: 0.7; }
+
+.message-content {
+  word-wrap: break-word;
+  font-size: 0.95rem;
+}
+
+.message-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.message-form input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+.message-form input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #999;
+  font-size: 1.1rem;
+}

@@ -1,0 +1,84 @@
+.dashboard h1 {
+  color: #2c3e50;
+  margin-bottom: 2rem;
+  font-size: 2rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.stat-card h3 {
+  font-size: 2.5rem;
+  color: #3498db;
+  margin-bottom: 0.5rem;
+}
+
+.stat-card p {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.recent-swaps {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.recent-swaps h2 {
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+}
+
+.swaps-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.swap-item {
+  background: #f9f9f9;
+  padding: 1.5rem;
+  border-left: 4px solid #3498db;
+  border-radius: 4px;
+  position: relative;
+}
+
+.swap-item.completed {
+  border-left-color: #27ae60;
+  opacity: 0.8;
+}
+
+.swap-status-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: #3498db;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.swap-item.completed .swap-status-badge {
+  background: #27ae60;
+}
+
+.swap-item p {
+  margin: 0.5rem 0;
+  color: #333;
+}
