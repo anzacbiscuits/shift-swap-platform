@@ -58,7 +58,7 @@ function App() {
             <div className="nav-links">
               <a href="/">Dashboard</a>
               <a href="/board">Swap Board</a>
-              <a href="/create">New Swap</a>
+              <a href="/create">My Swap Line</a>
               <a href="/messages">Messages</a>
               {user.role === 'admin' && <a href="/admin">Admin</a>}
               <button onClick={handleLogout} className="logout-btn">Logout</button>

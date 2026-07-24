@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import '../styles/CreateSwap.css';
@@ -11,11 +11,38 @@ function CreateSwap({ user }) {
   const [preferredTimes, setPreferredTimes] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [newGiveShift, setNewGiveShift] = useState({ date: '', shiftType: 'PECC Day' });
   const [newUnavail, setNewUnavail] = useState({ dateStart: '', dateEnd: '', reason: '' });
   const [newPref, setNewPref] = useState({ dateStart: '', dateEnd: '', shiftTypes: [] });
 
   const shiftTypes = ['PECC Day', 'PECC Evening', 'JHH Day', 'JHH Evening', 'JHH Evening on call', 'PECC Night', 'JHH Night', 'Back up', 'ECT', 'ECT Back up', 'MHCC 10-4'];
+
+  useEffect(() => {
+    const loadExisting = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get('/api/swaps/mine', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data) {
+          setEditMode(true);
+          setGiveShifts((res.data.giveShifts || []).map(g => ({ date: g.date, shiftType: g.shift_type })));
+          setUnavailableDates((res.data.unavailable || []).map(u => ({
+            dateStart: u.date_start, dateEnd: u.date_end, reason: u.reason || ''
+          })));
+          setPreferredTimes((res.data.preferred || []).map(pr => {
+            let types = [];
+            try { types = JSON.parse(pr.shift_types || '[]'); } catch (e) { types = []; }
+            return { dateStart: pr.date_start, dateEnd: pr.date_end, shiftTypes: types };
+          }));
+        }
+      } catch (err) {
+        // no existing line (or fetch failed) -> treat as new
+      }
+    };
+    loadExisting();
+  }, []);
 
   const addGiveShift = () => {
     if (!newGiveShift.date) {
@@ -68,7 +95,7 @@ function CreateSwap({ user }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('/api/swaps/create', {
+      const response = await axios.post('/api/swaps/save', {
         giveShifts,
         unavailableDates,
         preferredTimes
@@ -76,7 +103,7 @@ function CreateSwap({ user }) {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      alert('Swap created successfully!');
+      alert(editMode ? 'Swap line saved!' : 'Swap created successfully!');
       if (response.data.matches && response.data.matches.length > 0) {
         alert(`Found ${response.data.matches.length} potential match(es)!`);
       }
@@ -90,7 +117,7 @@ function CreateSwap({ user }) {
 
   return (
     <div className="container create-swap">
-      <h1>Create New Shift Swap Request</h1>
+      <h1>{editMode ? 'Your Shift Swap Line' : 'Create New Shift Swap Request'}</h1>
       
       {error && <div className="alert alert-error">{error}</div>}
 
@@ -293,7 +320,7 @@ function CreateSwap({ user }) {
                 Back
               </button>
               <button type="submit" className="btn btn-success" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Swap Request'}
+                {loading ? 'Saving...' : (editMode ? 'Save Changes' : 'Create Swap Request')}
               </button>
             </div>
           </section>

@@ -257,4 +257,91 @@ router.delete('/:swapId', verifyToken, async (req, res) => {
   }
 });
 
+router.get('/mine', verifyToken, async (req, res) => {
+  try {
+    const swap = await dbGet(
+      "SELECT * FROM swaps WHERE registrar_id = ? AND status = 'active' ORDER BY created_at DESC LIMIT 1",
+      [req.user.id]
+    );
+    if (!swap) return res.json(null);
+    const giveShifts = await dbAll('SELECT * FROM swap_give_shifts WHERE swap_id = ?', [swap.id]);
+    const unavailable = await dbAll('SELECT * FROM swap_unavailable WHERE swap_id = ?', [swap.id]);
+    const preferred = await dbAll('SELECT * FROM swap_preferred_times WHERE swap_id = ?', [swap.id]);
+    res.json({ ...swap, giveShifts, unavailable, preferred });
+  } catch (error) {
+    console.error('Error fetching my swap line:', error);
+    res.status(500).json({ error: 'Failed to fetch your swap line' });
+  }
+});
+
+// Upsert the registrar's single swap line. Reuses their existing active line if
+// present (and removes any duplicate active lines), otherwise creates one.
+router.post('/save', verifyToken, async (req, res) => {
+  try {
+    const { giveShifts, unavailableDates, preferredTimes } = req.body;
+    const registrarId = req.user.id;
+
+    if (!giveShifts || !Array.isArray(giveShifts) || giveShifts.length === 0) {
+      return res.status(400).json({ error: 'At least one shift to give is required' });
+    }
+
+    const existing = await dbAll(
+      "SELECT id FROM swaps WHERE registrar_id = ? AND status = 'active' ORDER BY created_at DESC",
+      [registrarId]
+    );
+
+    let swapId;
+    if (existing.length > 0) {
+      swapId = existing[0].id;
+      // enforce a single line: delete any extra active lines for this registrar
+      for (const extra of existing.slice(1)) {
+        await dbRun('DELETE FROM swap_give_shifts WHERE swap_id = ?', [extra.id]);
+        await dbRun('DELETE FROM swap_unavailable WHERE swap_id = ?', [extra.id]);
+        await dbRun('DELETE FROM swap_preferred_times WHERE swap_id = ?', [extra.id]);
+        await dbRun('DELETE FROM swaps WHERE id = ?', [extra.id]);
+      }
+      // clear this line's children before re-inserting the new state
+      await dbRun('DELETE FROM swap_give_shifts WHERE swap_id = ?', [swapId]);
+      await dbRun('DELETE FROM swap_unavailable WHERE swap_id = ?', [swapId]);
+      await dbRun('DELETE FROM swap_preferred_times WHERE swap_id = ?', [swapId]);
+      await dbRun('UPDATE swaps SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [swapId]);
+    } else {
+      swapId = generateId();
+      await dbRun('INSERT INTO swaps (id, registrar_id, status) VALUES (?, ?, ?)', [swapId, registrarId, 'active']);
+    }
+
+    for (const shift of giveShifts) {
+      await dbRun(
+        'INSERT INTO swap_give_shifts (id, swap_id, date, shift_type) VALUES (?, ?, ?, ?)',
+        [generateId(), swapId, shift.date, shift.shiftType]
+      );
+    }
+
+    if (unavailableDates && Array.isArray(unavailableDates)) {
+      for (const unavail of unavailableDates) {
+        await dbRun(
+          'INSERT INTO swap_unavailable (id, swap_id, date_start, date_end, time_slots, reason) VALUES (?, ?, ?, ?, ?, ?)',
+          [generateId(), swapId, unavail.dateStart, unavail.dateEnd, JSON.stringify(unavail.timeSlots || []), unavail.reason || '']
+        );
+      }
+    }
+
+    if (preferredTimes && Array.isArray(preferredTimes)) {
+      for (const pref of preferredTimes) {
+        await dbRun(
+          'INSERT INTO swap_preferred_times (id, swap_id, date_start, date_end, shift_types) VALUES (?, ?, ?, ?, ?)',
+          [generateId(), swapId, pref.dateStart, pref.dateEnd, JSON.stringify(pref.shiftTypes || [])]
+        );
+      }
+    }
+
+    const matches = await findMatches(swapId, registrarId);
+
+    res.json({ message: 'Swap line saved', swapId, matches });
+  } catch (error) {
+    console.error('Error saving swap line:', error);
+    res.status(500).json({ error: 'Failed to save swap line' });
+  }
+});
+
 module.exports = router;
