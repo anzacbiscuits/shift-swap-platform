@@ -62,7 +62,7 @@
   z-index: 10;
 }
 
-.date-header { min-width: 70px; }
+.date-header { min-width: 82px; white-space: nowrap; }
 
 .swap-board tbody tr:nth-child(odd) {
   background-color: #f9f9f9;

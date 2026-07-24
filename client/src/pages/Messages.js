@@ -108,7 +108,7 @@ function Messages({ user }) {
                   <div key={msg.id} className={`message ${msg.sender_id === user.id ? 'sent' : 'received'}`}>
                     <div className="message-header">
                       <strong>{msg.sender_name}</strong>
-                      <small>{new Date(msg.created_at).toLocaleString()}</small>
+                      <small>{new Date(msg.created_at).toLocaleString('en-GB')}</small>
                     </div>
                     <div className="message-content">{msg.message}</div>
                   </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import '../styles/SwapBoard.css';
 
-const COL_WIDTH = 70; // matches .date-header min-width in SwapBoard.css
+const COL_WIDTH = 82; // matches .date-header min-width in SwapBoard.css
 
 function SwapBoard({ user }) {
   const [swaps, setSwaps] = useState([]);
@@ -163,7 +163,7 @@ function SwapBoard({ user }) {
               <th className="name-column">Registrar</th>
               {dates.map((date, idx) => (
                 <th key={idx} className="date-header">
-                  {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  {date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                 </th>
               ))}
             </tr>
@@ -181,7 +181,7 @@ function SwapBoard({ user }) {
 
                   return (
                     <td key={idx} className="date-cell">
-                      {shift && <span className="shift shift-red">{shift.shift_type.substring(0, 3)}</span>}
+                      {shift && <span className="shift shift-red" title={shift.shift_type}>{shift.shift_type.substring(0, 3)}</span>}
                       {unavail && <span className="shift shift-unavailable">✕</span>}
                       {pref && !shift && !unavail && <span className="shift shift-green">✓</span>}
                     </td>

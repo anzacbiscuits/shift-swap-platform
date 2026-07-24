@@ -173,7 +173,7 @@ function Admin() {
                     <td>{reg.name}</td>
                     <td>{reg.email}</td>
                     <td><span className="role-badge">{reg.role}</span></td>
-                    <td>{new Date(reg.created_at).toLocaleDateString()}</td>
+                    <td>{new Date(reg.created_at).toLocaleDateString('en-GB')}</td>
                     <td>
                       <button
                         onClick={() => deleteRegistrar(reg.id)}
@@ -210,7 +210,7 @@ function Admin() {
                     <td>{swap.name}</td>
                     <td>{swap.giveShifts?.length || 0}</td>
                     <td><span className={`status-badge ${swap.status}`}>{swap.status}</span></td>
-                    <td>{new Date(swap.created_at).toLocaleDateString()}</td>
+                    <td>{new Date(swap.created_at).toLocaleDateString('en-GB')}</td>
                     <td>
                       <button
                         onClick={() => deleteSwap(swap.id)}

@@ -55,7 +55,7 @@ function Dashboard({ user }) {
             {swaps.slice(0, 5).map(swap => (
               <div key={swap.id} className={`swap-item ${swap.status}`}>
                 <div className="swap-status-badge">{swap.status}</div>
-                <p><strong>Created:</strong> {new Date(swap.created_at).toLocaleDateString()}</p>
+                <p><strong>Created:</strong> {new Date(swap.created_at).toLocaleDateString('en-GB')}</p>
                 <p><strong>Shifts to give:</strong> {swap.giveShifts?.length || 0}</p>
               </div>
             ))}

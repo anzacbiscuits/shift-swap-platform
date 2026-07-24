@@ -3,6 +3,15 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import '../styles/CreateSwap.css';
 
+// Format an ISO date string (YYYY-MM-DD) as day/month/year.
+const formatDMY = (iso) => {
+  if (!iso) return '';
+  const parts = String(iso).split('-');
+  if (parts.length !== 3) return iso;
+  const [y, m, d] = parts;
+  return `${d}/${m}/${y}`;
+};
+
 function CreateSwap({ user }) {
   const navigate = useNavigate();
   const [formStep, setFormStep] = useState(1);
@@ -161,7 +170,7 @@ function CreateSwap({ user }) {
                 <h3>Shifts to Give:</h3>
                 {giveShifts.map((shift, idx) => (
                   <div key={idx} className="item-badge">
-                    <span>{shift.date} - {shift.shiftType}</span>
+                    <span>{formatDMY(shift.date)} - {shift.shiftType}</span>
                     <button
                       type="button"
                       onClick={() => removeGiveShift(idx)}
@@ -223,7 +232,7 @@ function CreateSwap({ user }) {
                 <h3>Unavailable Periods:</h3>
                 {unavailableDates.map((period, idx) => (
                   <div key={idx} className="item-badge">
-                    <span>{period.dateStart} to {period.dateEnd} {period.reason && `(${period.reason})`}</span>
+                    <span>{formatDMY(period.dateStart)} to {formatDMY(period.dateEnd)} {period.reason && `(${period.reason})`}</span>
                     <button
                       type="button"
                       onClick={() => removeUnavailable(idx)}
@@ -301,7 +310,7 @@ function CreateSwap({ user }) {
                   const slots = (time.shiftTypes || []).join(', ');
                   return (
                     <div key={idx} className="item-badge">
-                      <span>{time.dateStart} to {time.dateEnd} - {slots}</span>
+                      <span>{formatDMY(time.dateStart)} to {formatDMY(time.dateEnd)} - {slots}</span>
                       <button
                         type="button"
                         onClick={() => removePreferred(idx)}
