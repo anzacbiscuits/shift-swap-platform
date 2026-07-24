@@ -105,6 +105,12 @@ const initializeDatabase = () => {
         registrar_1_id TEXT NOT NULL,
         registrar_2_id TEXT NOT NULL,
         status TEXT DEFAULT 'pending',
+        give1_date TEXT,
+        give1_shift TEXT,
+        give2_date TEXT,
+        give2_shift TEXT,
+        reg1_accepted INTEGER DEFAULT 0,
+        reg2_accepted INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (swap_id_1) REFERENCES swaps(id),
         FOREIGN KEY (swap_id_2) REFERENCES swaps(id),
@@ -165,6 +171,21 @@ const runMigrations = async () => {
     if (cols.length && !cols.some(c => c.name === 'shift_types')) {
       await dbRun("ALTER TABLE swap_preferred_times ADD COLUMN shift_types TEXT DEFAULT '[]'");
       console.log('Migration: added shift_types column to swap_preferred_times');
+    }
+
+    const offerCols = await dbAll("PRAGMA table_info(swap_offers)");
+    if (offerCols.length) {
+      const want = [
+        ['give1_date', 'TEXT'], ['give1_shift', 'TEXT'],
+        ['give2_date', 'TEXT'], ['give2_shift', 'TEXT'],
+        ['reg1_accepted', 'INTEGER DEFAULT 0'], ['reg2_accepted', 'INTEGER DEFAULT 0']
+      ];
+      for (const [name, type] of want) {
+        if (!offerCols.some(c => c.name === name)) {
+          await dbRun(`ALTER TABLE swap_offers ADD COLUMN ${name} ${type}`);
+          console.log(`Migration: added ${name} column to swap_offers`);
+        }
+      }
     }
   } catch (error) {
     console.error('Migration error:', error);

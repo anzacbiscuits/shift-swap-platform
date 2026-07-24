@@ -105,6 +105,26 @@ router.post('/create', verifyToken, async (req, res) => {
   }
 });
 
+// Create a pending offer for a matched pair, unless one is already pending/agreed
+// between these two registrars (avoids duplicates on re-save/edit).
+const createOfferIfNew = async ({ swapId1, reg1, give1, swapId2, reg2, give2 }) => {
+  const existing = await dbGet(
+    `SELECT id FROM swap_offers
+     WHERE status IN ('pending','agreed')
+       AND ((registrar_1_id = ? AND registrar_2_id = ?) OR (registrar_1_id = ? AND registrar_2_id = ?))`,
+    [reg1, reg2, reg2, reg1]
+  );
+  if (existing) return;
+  await dbRun(
+    `INSERT INTO swap_offers
+      (id, swap_id_1, swap_id_2, registrar_1_id, registrar_2_id, status,
+       give1_date, give1_shift, give2_date, give2_shift, reg1_accepted, reg2_accepted)
+     VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, 0, 0)`,
+    [generateId(), swapId1, swapId2, reg1, reg2,
+     give1.date, give1.shift_type, give2.date, give2.shift_type]
+  );
+};
+
 const findMatches = async (newSwapId, newRegistrarId) => {
   try {
     const newSwap = await dbGet('SELECT * FROM swaps WHERE id = ?', [newSwapId]);
@@ -124,16 +144,19 @@ const findMatches = async (newSwapId, newRegistrarId) => {
       const otherPreferred = await dbAll('SELECT * FROM swap_preferred_times WHERE swap_id = ?', [otherSwap.id]);
       const otherUnavailable = await dbAll('SELECT * FROM swap_unavailable WHERE swap_id = ?', [otherSwap.id]);
 
-      const isMatch = checkTwoWayMatch(
-        newGiveShifts, newPreferred, newUnavailable,
-        otherGiveShifts, otherPreferred, otherUnavailable
-      );
+      // Concrete 1-for-1 pairing: first shift each side that the other accepts.
+      const shiftFromNew = newGiveShifts.find(g => receiverAcceptsShift(g, otherPreferred, otherUnavailable));
+      const shiftFromOther = otherGiveShifts.find(g => receiverAcceptsShift(g, newPreferred, newUnavailable));
 
-      if (isMatch) {
+      if (shiftFromNew && shiftFromOther) {
         matches.push({
           swapId: otherSwap.id,
           registrarId: otherSwap.registrar_id,
           matchType: 'twoWay'
+        });
+        await createOfferIfNew({
+          swapId1: newSwapId, reg1: newRegistrarId, give1: shiftFromNew,
+          swapId2: otherSwap.id, reg2: otherSwap.registrar_id, give2: shiftFromOther
         });
       }
     }

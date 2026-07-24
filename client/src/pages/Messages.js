@@ -2,47 +2,52 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/Messages.css';
 
+const formatDMY = (iso) => {
+  if (!iso) return '';
+  const parts = String(iso).split('-');
+  if (parts.length !== 3) return iso;
+  const [y, m, d] = parts;
+  return `${d}/${m}/${y}`;
+};
+
 function Messages({ user }) {
-  const [messages, setMessages] = useState([]);
+  const [offers, setOffers] = useState([]);
   const [selectedRegistrar, setSelectedRegistrar] = useState(null);
   const [conversation, setConversation] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [registrars, setRegistrars] = useState([]);
 
+  const authHeader = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+
   useEffect(() => {
-    fetchMessages();
-    fetchRegistrars();
+    const init = async () => {
+      await Promise.all([fetchRegistrars(), fetchOffers()]);
+      setLoading(false);
+    };
+    init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (selectedRegistrar) {
-      fetchConversation(selectedRegistrar);
-    }
+    if (selectedRegistrar) fetchConversation(selectedRegistrar);
   }, [selectedRegistrar]);
 
-  const fetchMessages = async () => {
+  const fetchOffers = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('/api/messages/inbox', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setMessages(response.data);
+      const response = await axios.get('/api/offers/inbox', authHeader());
+      setOffers(response.data);
     } catch (error) {
-      console.error('Error fetching messages:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching offers:', error);
     }
   };
 
   const fetchRegistrars = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('/api/swaps/board', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const uniqueRegistrars = [...new Map(response.data.map(item => [item.registrar_id, item])).values()];
-      setRegistrars(uniqueRegistrars);
+      const response = await axios.get('/api/swaps/board', authHeader());
+      const unique = [...new Map(response.data.map(item => [item.registrar_id, item])).values()]
+        .filter(item => item.registrar_id !== user.id);
+      setRegistrars(unique);
     } catch (error) {
       console.error('Error fetching registrars:', error);
     }
@@ -50,40 +55,73 @@ function Messages({ user }) {
 
   const fetchConversation = async (registrarId) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`/api/messages/conversation/${registrarId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.get(`/api/messages/conversation/${registrarId}`, authHeader());
       setConversation(response.data);
     } catch (error) {
       console.error('Error fetching conversation:', error);
     }
   };
 
+  const respondToOffer = async (id, action) => {
+    try {
+      await axios.post(`/api/offers/${id}/${action}`, {}, authHeader());
+      fetchOffers();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Could not update the swap suggestion');
+    }
+  };
+
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedRegistrar) return;
-
     try {
-      const token = localStorage.getItem('token');
       await axios.post('/api/messages/send', {
         recipientId: selectedRegistrar,
         message: newMessage
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      }, authHeader());
       setNewMessage('');
       fetchConversation(selectedRegistrar);
     } catch (error) {
-      console.error('Error sending message:', error);
+      alert(error.response?.data?.error || 'Could not send message');
     }
   };
+
+  const describe = (o) =>
+    `give your ${o.youGive.shift} on ${formatDMY(o.youGive.date)} for ${o.otherName}'s ${o.youReceive.shift} on ${formatDMY(o.youReceive.date)}`;
 
   if (loading) return <div className="loading">Loading messages...</div>;
 
   return (
     <div className="messages-container">
       <h1>Messages</h1>
+
+      <div className="offers-section">
+        <h2>Swap Suggestions</h2>
+        {offers.length === 0 ? (
+          <p className="offers-empty">No swap suggestions right now.</p>
+        ) : (
+          offers.map(o => (
+            <div key={o.id} className={`offer-card ${o.status === 'agreed' ? 'offer-agreed' : 'offer-pending'}`}>
+              {o.status === 'agreed' ? (
+                <div className="offer-text">✓ Agreed with {o.otherName}: you {describe(o)}.</div>
+              ) : (
+                <>
+                  <div className="offer-text">Suggested swap with {o.otherName}: {describe(o)}.</div>
+                  {o.youAccepted ? (
+                    <div className="offer-waiting">You accepted — waiting for {o.otherName} to respond.</div>
+                  ) : (
+                    <div className="offer-actions">
+                      <button className="btn btn-success" onClick={() => respondToOffer(o.id, 'accept')}>Accept</button>
+                      <button className="btn btn-secondary" onClick={() => respondToOffer(o.id, 'decline')}>Decline</button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
       <div className="messages-layout">
         <div className="registrar-list">
           <h2>Registrars</h2>

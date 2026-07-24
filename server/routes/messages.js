@@ -14,6 +14,10 @@ router.post('/send', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'Recipient and message required' });
     }
 
+    if (recipientId === senderId) {
+      return res.status(400).json({ error: 'You cannot message yourself' });
+    }
+
     const id = generateId();
     await dbRun(
       'INSERT INTO messages (id, sender_id, recipient_id, completed_swap_id, message) VALUES (?, ?, ?, ?, ?)',
