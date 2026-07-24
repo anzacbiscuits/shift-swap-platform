@@ -59,6 +59,7 @@ const initializeDatabase = () => {
         morning BOOLEAN DEFAULT 0,
         evening BOOLEAN DEFAULT 0,
         night BOOLEAN DEFAULT 0,
+        shift_types TEXT DEFAULT '[]',
         FOREIGN KEY (swap_id) REFERENCES swaps(id)
       )
     `);
@@ -157,6 +158,19 @@ const dbAll = (sql, params = []) => {
   });
 };
 
+// Additive schema migrations for existing databases (safe to run every startup).
+const runMigrations = async () => {
+  try {
+    const cols = await dbAll("PRAGMA table_info(swap_preferred_times)");
+    if (cols.length && !cols.some(c => c.name === 'shift_types')) {
+      await dbRun("ALTER TABLE swap_preferred_times ADD COLUMN shift_types TEXT DEFAULT '[]'");
+      console.log('Migration: added shift_types column to swap_preferred_times');
+    }
+  } catch (error) {
+    console.error('Migration error:', error);
+  }
+};
+
 const bcrypt = require('bcryptjs');
 
 // Idempotently ensure an admin account exists on startup. Credentials come from
@@ -186,6 +200,7 @@ const seedAdmin = async () => {
 module.exports = {
   db,
   initializeDatabase,
+  runMigrations,
   seedAdmin,
   dbRun,
   dbGet,

@@ -11,11 +11,11 @@ function CreateSwap({ user }) {
   const [preferredTimes, setPreferredTimes] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [newGiveShift, setNewGiveShift] = useState({ date: '', shiftType: 'PECC' });
+  const [newGiveShift, setNewGiveShift] = useState({ date: '', shiftType: 'PECC Day' });
   const [newUnavail, setNewUnavail] = useState({ dateStart: '', dateEnd: '', reason: '' });
-  const [newPref, setNewPref] = useState({ dateStart: '', dateEnd: '', morning: false, evening: false, night: false });
+  const [newPref, setNewPref] = useState({ dateStart: '', dateEnd: '', shiftTypes: [] });
 
-  const shiftTypes = ['PECC', 'JHH', 'Maitland', 'On Call', 'Back Up'];
+  const shiftTypes = ['PECC Day', 'PECC Evening', 'JHH Day', 'JHH Evening', 'JHH Evening on call', 'PECC Night', 'JHH Night', 'Back up', 'ECT', 'ECT Back up', 'MHCC 10-4'];
 
   const addGiveShift = () => {
     if (!newGiveShift.date) {
@@ -23,7 +23,7 @@ function CreateSwap({ user }) {
       return;
     }
     setGiveShifts([...giveShifts, { ...newGiveShift }]);
-    setNewGiveShift({ date: '', shiftType: 'PECC' });
+    setNewGiveShift({ date: '', shiftType: 'PECC Day' });
   };
 
   const removeGiveShift = (idx) => {
@@ -44,12 +44,12 @@ function CreateSwap({ user }) {
   };
 
   const addPreferred = () => {
-    if (!newPref.dateStart || !newPref.dateEnd || (!newPref.morning && !newPref.evening && !newPref.night)) {
-      setError('Please select dates and at least one time slot');
+    if (!newPref.dateStart || !newPref.dateEnd || newPref.shiftTypes.length === 0) {
+      setError('Please select dates and at least one shift type you would accept');
       return;
     }
-    setPreferredTimes([...preferredTimes, { ...newPref }]);
-    setNewPref({ dateStart: '', dateEnd: '', morning: false, evening: false, night: false });
+    setPreferredTimes([...preferredTimes, { ...newPref, shiftTypes: [...newPref.shiftTypes] }]);
+    setNewPref({ dateStart: '', dateEnd: '', shiftTypes: [] });
   };
 
   const removePreferred = (idx) => {
@@ -222,7 +222,7 @@ function CreateSwap({ user }) {
 
         {formStep === 3 && (
           <section className="form-section">
-            <h2>Select when you PREFER to receive shifts</h2>
+            <h2>Select shift types you're willing to RECEIVE on chosen dates</h2>
             <div className="form-group">
               <label>From Date</label>
               <input
@@ -244,32 +244,23 @@ function CreateSwap({ user }) {
               />
             </div>
             <div className="form-group">
-              <label>Preferred Time Slots</label>
+              <label>Shift types you are willing to accept</label>
               <div className="checkbox-group">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={newPref.morning}
-                    onChange={(e) => setNewPref({ ...newPref, morning: e.target.checked })}
-                  />
-                  Morning
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={newPref.evening}
-                    onChange={(e) => setNewPref({ ...newPref, evening: e.target.checked })}
-                  />
-                  Evening
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={newPref.night}
-                    onChange={(e) => setNewPref({ ...newPref, night: e.target.checked })}
-                  />
-                  Night
-                </label>
+                {shiftTypes.map(type => (
+                  <label key={type}>
+                    <input
+                      type="checkbox"
+                      checked={newPref.shiftTypes.includes(type)}
+                      onChange={(e) => {
+                        const next = e.target.checked
+                          ? [...newPref.shiftTypes, type]
+                          : newPref.shiftTypes.filter(t => t !== type);
+                        setNewPref({ ...newPref, shiftTypes: next });
+                      }}
+                    />
+                    {type}
+                  </label>
+                ))}
               </div>
             </div>
             <button type="button" onClick={addPreferred} className="btn btn-secondary">
@@ -280,8 +271,7 @@ function CreateSwap({ user }) {
               <div className="added-items">
                 <h3>Preferred Times to Receive:</h3>
                 {preferredTimes.map((time, idx) => {
-                  const slots = [time.morning && 'Morning', time.evening && 'Evening', time.night && 'Night']
-                    .filter(Boolean).join(', ');
+                  const slots = (time.shiftTypes || []).join(', ');
                   return (
                     <div key={idx} className="item-badge">
                       <span>{time.dateStart} to {time.dateEnd} - {slots}</span>

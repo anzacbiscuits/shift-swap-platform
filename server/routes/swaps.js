@@ -86,8 +86,8 @@ router.post('/create', verifyToken, async (req, res) => {
     if (preferredTimes && Array.isArray(preferredTimes)) {
       for (const pref of preferredTimes) {
         await dbRun(
-          'INSERT INTO swap_preferred_times (id, swap_id, date_start, date_end, morning, evening, night) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          [generateId(), swapId, pref.dateStart, pref.dateEnd, pref.morning ? 1 : 0, pref.evening ? 1 : 0, pref.night ? 1 : 0]
+          'INSERT INTO swap_preferred_times (id, swap_id, date_start, date_end, shift_types) VALUES (?, ?, ?, ?, ?)',
+          [generateId(), swapId, pref.dateStart, pref.dateEnd, JSON.stringify(pref.shiftTypes || [])]
         );
       }
     }
@@ -110,6 +110,7 @@ const findMatches = async (newSwapId, newRegistrarId) => {
     const newSwap = await dbGet('SELECT * FROM swaps WHERE id = ?', [newSwapId]);
     const newGiveShifts = await dbAll('SELECT * FROM swap_give_shifts WHERE swap_id = ?', [newSwapId]);
     const newPreferred = await dbAll('SELECT * FROM swap_preferred_times WHERE swap_id = ?', [newSwapId]);
+    const newUnavailable = await dbAll('SELECT * FROM swap_unavailable WHERE swap_id = ?', [newSwapId]);
 
     const otherSwaps = await dbAll(
       'SELECT s.id, s.registrar_id FROM swaps s WHERE s.status = ? AND s.registrar_id != ? AND s.id != ?',
@@ -121,8 +122,12 @@ const findMatches = async (newSwapId, newRegistrarId) => {
     for (const otherSwap of otherSwaps) {
       const otherGiveShifts = await dbAll('SELECT * FROM swap_give_shifts WHERE swap_id = ?', [otherSwap.id]);
       const otherPreferred = await dbAll('SELECT * FROM swap_preferred_times WHERE swap_id = ?', [otherSwap.id]);
+      const otherUnavailable = await dbAll('SELECT * FROM swap_unavailable WHERE swap_id = ?', [otherSwap.id]);
 
-      const isMatch = checkTwoWayMatch(newGiveShifts, newPreferred, otherGiveShifts, otherPreferred);
+      const isMatch = checkTwoWayMatch(
+        newGiveShifts, newPreferred, newUnavailable,
+        otherGiveShifts, otherPreferred, otherUnavailable
+      );
 
       if (isMatch) {
         matches.push({
@@ -140,30 +145,35 @@ const findMatches = async (newSwapId, newRegistrarId) => {
   }
 };
 
-const checkTwoWayMatch = (giveShifts1, preferred1, giveShifts2, preferred2) => {
-  let registrar1ToRegistrar2Match = false;
-  for (const give of giveShifts1) {
-    for (const pref of preferred2) {
-      if (dateInRange(give.date, pref.date_start, pref.date_end)) {
-        registrar1ToRegistrar2Match = true;
-        break;
-      }
-    }
-    if (registrar1ToRegistrar2Match) break;
-  }
+const parseAcceptTypes = (prefRow) => {
+  try { return JSON.parse(prefRow.shift_types || '[]'); }
+  catch (e) { return []; }
+};
 
-  let registrar2ToRegistrar1Match = false;
-  for (const give of giveShifts2) {
-    for (const pref of preferred1) {
-      if (dateInRange(give.date, pref.date_start, pref.date_end)) {
-        registrar2ToRegistrar1Match = true;
-        break;
-      }
-    }
-    if (registrar2ToRegistrar1Match) break;
-  }
+// Is the receiver willing to take this offered shift?
+// Requires: date within a preferred range, offered shift type in that range's
+// accepted types, and the receiver NOT marked unavailable on that date.
+const receiverAcceptsShift = (giveShift, receiverPreferred, receiverUnavailable) => {
+  const d = new Date(giveShift.date);
 
-  return registrar1ToRegistrar2Match && registrar2ToRegistrar1Match;
+  const blocked = (receiverUnavailable || []).some(u =>
+    d >= new Date(u.date_start) && d <= new Date(u.date_end)
+  );
+  if (blocked) return false;
+
+  return (receiverPreferred || []).some(p => {
+    const inRange = d >= new Date(p.date_start) && d <= new Date(p.date_end);
+    if (!inRange) return false;
+    return parseAcceptTypes(p).includes(giveShift.shift_type);
+  });
+};
+
+const checkTwoWayMatch = (give1, pref1, unavail1, give2, pref2, unavail2) => {
+  // registrar 2 can receive at least one of registrar 1's offered shifts
+  const oneToTwo = (give1 || []).some(g => receiverAcceptsShift(g, pref2, unavail2));
+  // registrar 1 can receive at least one of registrar 2's offered shifts
+  const twoToOne = (give2 || []).some(g => receiverAcceptsShift(g, pref1, unavail1));
+  return oneToTwo && twoToOne;
 };
 
 router.post('/accept-offer', verifyToken, async (req, res) => {

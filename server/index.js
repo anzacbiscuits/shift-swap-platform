@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 require('dotenv').config();
 
-const { initializeDatabase, seedAdmin } = require('./database');
+const { initializeDatabase, runMigrations, seedAdmin } = require('./database');
 
 const authRoutes = require('./routes/auth');
 const swapRoutes = require('./routes/swaps');
@@ -19,7 +19,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 initializeDatabase();
-seedAdmin();
+runMigrations().then(() => seedAdmin());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/swaps', swapRoutes);
