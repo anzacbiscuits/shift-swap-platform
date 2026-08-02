@@ -117,3 +117,17 @@
 }
 
 .step-buttons .btn { flex: 1; }
+
+/* Extra changes: clickable steps + preferred-times guard */
+.step-clickable { cursor: pointer; }
+.step-clickable:hover { opacity: 0.85; }
+.step.current {
+  outline: 2px solid #3498db;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.pref-dirty-hint {
+  margin-top: 0.6rem;
+  color: #e67e22;
+  font-size: 0.85rem;
+}

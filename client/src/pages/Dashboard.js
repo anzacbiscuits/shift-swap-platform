@@ -6,6 +6,9 @@ function Dashboard({ user }) {
   const [swaps, setSwaps] = useState([]);
   const [stats, setStats] = useState({ active: 0, completed: 0 });
   const [loading, setLoading] = useState(true);
+  const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
+  const [pwMsg, setPwMsg] = useState('');
+  const [pwErr, setPwErr] = useState('');
 
   useEffect(() => {
     fetchSwaps();
@@ -26,6 +29,23 @@ function Dashboard({ user }) {
       console.error('Error fetching swaps:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const changePassword = async (e) => {
+    e.preventDefault();
+    setPwMsg(''); setPwErr('');
+    if (pw.next !== pw.confirm) { setPwErr('New passwords do not match'); return; }
+    if (pw.next.length < 6) { setPwErr('New password must be at least 6 characters'); return; }
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('/api/auth/change-password',
+        { currentPassword: pw.current, newPassword: pw.next },
+        { headers: { Authorization: `Bearer ${token}` } });
+      setPwMsg('Password updated successfully');
+      setPw({ current: '', next: '', confirm: '' });
+    } catch (err) {
+      setPwErr(err.response?.data?.error || 'Failed to change password');
     }
   };
 
@@ -61,6 +81,21 @@ function Dashboard({ user }) {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="change-password">
+        <h2>Change Password</h2>
+        {pwMsg && <div className="alert alert-success">{pwMsg}</div>}
+        {pwErr && <div className="alert alert-error">{pwErr}</div>}
+        <form onSubmit={changePassword} className="password-form">
+          <input type="password" placeholder="Current password" value={pw.current}
+            onChange={(e) => setPw({ ...pw, current: e.target.value })} required />
+          <input type="password" placeholder="New password" value={pw.next}
+            onChange={(e) => setPw({ ...pw, next: e.target.value })} required />
+          <input type="password" placeholder="Confirm new password" value={pw.confirm}
+            onChange={(e) => setPw({ ...pw, confirm: e.target.value })} required />
+          <button type="submit" className="btn btn-primary">Update Password</button>
+        </form>
       </section>
     </div>
   );

@@ -82,3 +82,32 @@
   margin: 0.5rem 0;
   color: #333;
 }
+
+/* Change password section */
+.change-password {
+  margin-top: 2rem;
+}
+.change-password h2 {
+  margin-bottom: 0.75rem;
+}
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 320px;
+}
+.password-form input {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+.alert-success {
+  background: #eafaf1;
+  color: #1e8449;
+  border: 1px solid #a9dfbf;
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  margin-bottom: 0.6rem;
+  font-size: 0.9rem;
+}

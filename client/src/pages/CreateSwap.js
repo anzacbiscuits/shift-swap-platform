@@ -101,6 +101,12 @@ function CreateSwap({ user }) {
       return;
     }
 
+    if (newPref.dateStart || newPref.dateEnd || newPref.shiftTypes.length > 0) {
+      setError('Please add your preferred-times selection or clear it before saving');
+      setFormStep(3);
+      return;
+    }
+
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -124,6 +130,8 @@ function CreateSwap({ user }) {
     }
   };
 
+  const prefDirty = !!(newPref.dateStart || newPref.dateEnd || (newPref.shiftTypes && newPref.shiftTypes.length > 0));
+
   return (
     <div className="container create-swap">
       <h1>{editMode ? 'Your Shift Swap Line' : 'Create New Shift Swap Request'}</h1>
@@ -131,9 +139,9 @@ function CreateSwap({ user }) {
       {error && <div className="alert alert-error">{error}</div>}
 
       <div className="form-steps">
-        <div className={`step ${formStep >= 1 ? 'active' : ''}`}>1. Shifts to Give</div>
-        <div className={`step ${formStep >= 2 ? 'active' : ''}`}>2. Unavailable Times</div>
-        <div className={`step ${formStep >= 3 ? 'active' : ''}`}>3. Preferred Times</div>
+        <div className={`step step-clickable ${formStep === 1 ? 'current' : ''} ${formStep >= 1 ? 'active' : ''}`} onClick={() => setFormStep(1)}>1. Shifts to Give</div>
+        <div className={`step step-clickable ${formStep === 2 ? 'current' : ''} ${formStep >= 2 ? 'active' : ''}`} onClick={() => setFormStep(2)}>2. Unavailable Times</div>
+        <div className={`step step-clickable ${formStep === 3 ? 'current' : ''} ${formStep >= 3 ? 'active' : ''}`} onClick={() => setFormStep(3)}>3. Preferred Times</div>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -199,7 +207,7 @@ function CreateSwap({ user }) {
               <input
                 type="date"
                 value={newUnavail.dateStart}
-                onChange={(e) => setNewUnavail({ ...newUnavail, dateStart: e.target.value })}
+                onChange={(e) => setNewUnavail({ ...newUnavail, dateStart: e.target.value, dateEnd: (!newUnavail.dateEnd || newUnavail.dateEnd < e.target.value) ? e.target.value : newUnavail.dateEnd })}
                 min="2026-08-03"
                 max="2027-01-31"
               />
@@ -210,7 +218,7 @@ function CreateSwap({ user }) {
                 type="date"
                 value={newUnavail.dateEnd}
                 onChange={(e) => setNewUnavail({ ...newUnavail, dateEnd: e.target.value })}
-                min="2026-08-03"
+                min={newUnavail.dateStart || "2026-08-03"}
                 max="2027-01-31"
               />
             </div>
@@ -264,7 +272,7 @@ function CreateSwap({ user }) {
               <input
                 type="date"
                 value={newPref.dateStart}
-                onChange={(e) => setNewPref({ ...newPref, dateStart: e.target.value })}
+                onChange={(e) => setNewPref({ ...newPref, dateStart: e.target.value, dateEnd: (!newPref.dateEnd || newPref.dateEnd < e.target.value) ? e.target.value : newPref.dateEnd })}
                 min="2026-08-03"
                 max="2027-01-31"
               />
@@ -275,7 +283,7 @@ function CreateSwap({ user }) {
                 type="date"
                 value={newPref.dateEnd}
                 onChange={(e) => setNewPref({ ...newPref, dateEnd: e.target.value })}
-                min="2026-08-03"
+                min={newPref.dateStart || "2026-08-03"}
                 max="2027-01-31"
               />
             </div>
@@ -301,6 +309,9 @@ function CreateSwap({ user }) {
             </div>
             <button type="button" onClick={addPreferred} className="btn btn-secondary">
               Add Preferred Time
+            </button>
+            <button type="button" onClick={() => setNewPref({ dateStart: '', dateEnd: '', shiftTypes: [] })} className="btn btn-secondary">
+              Remove Selections
             </button>
 
             {preferredTimes.length > 0 && (
@@ -328,10 +339,13 @@ function CreateSwap({ user }) {
               <button type="button" onClick={() => setFormStep(2)} className="btn btn-secondary">
                 Back
               </button>
-              <button type="submit" className="btn btn-success" disabled={loading}>
+              <button type="submit" className="btn btn-success" disabled={loading || prefDirty}>
                 {loading ? 'Saving...' : (editMode ? 'Save Changes' : 'Create Swap Request')}
               </button>
             </div>
+            {prefDirty && (
+              <p className="pref-dirty-hint">Add your current selection (or press Remove Selections) before saving.</p>
+            )}
           </section>
         )}
       </form>
