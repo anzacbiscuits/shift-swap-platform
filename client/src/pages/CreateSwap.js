@@ -25,7 +25,7 @@ function CreateSwap({ user }) {
   const [newUnavail, setNewUnavail] = useState({ dateStart: '', dateEnd: '', reason: '' });
   const [newPref, setNewPref] = useState({ dateStart: '', dateEnd: '', shiftTypes: [] });
 
-  const shiftTypes = ['PECC Day', 'PECC Evening', 'JHH Day', 'JHH Evening', 'JHH Evening on call', 'PECC Night', 'JHH Night', 'Back up', 'ECT', 'ECT Back up', 'MHCC 10-4'];
+  const shiftTypes = ['PECC Day', 'PECC Evening', 'JHH Day', 'HV Day', 'JHH Evening', 'JHH Evening on call', 'PECC Night', 'JHH Night', 'Back up', 'ECT', 'ECT Back up', 'MHCC 10-4'];
 
   useEffect(() => {
     const loadExisting = async () => {

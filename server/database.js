@@ -187,6 +187,28 @@ const runMigrations = async () => {
         }
       }
     }
+
+    // One-time data backfill: add 'HV Day' to any preferred selection that already
+    // includes 'JHH Day' or 'PECC Day'. Guarded so it runs exactly once and will not
+    // re-add itself if a registrar later unticks it.
+    await dbRun("CREATE TABLE IF NOT EXISTS applied_migrations (key TEXT PRIMARY KEY, applied_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
+    const hvDone = await dbGet("SELECT key FROM applied_migrations WHERE key = ?", ['backfill_hv_day_v1']);
+    if (!hvDone) {
+      const prefRows = await dbAll("SELECT id, shift_types FROM swap_preferred_times");
+      let updated = 0;
+      for (const row of prefRows) {
+        let types;
+        try { types = JSON.parse(row.shift_types || '[]'); } catch (e) { types = []; }
+        if (!Array.isArray(types)) types = [];
+        if ((types.includes('JHH Day') || types.includes('PECC Day')) && !types.includes('HV Day')) {
+          types.push('HV Day');
+          await dbRun("UPDATE swap_preferred_times SET shift_types = ? WHERE id = ?", [JSON.stringify(types), row.id]);
+          updated++;
+        }
+      }
+      await dbRun("INSERT INTO applied_migrations (key) VALUES (?)", ['backfill_hv_day_v1']);
+      console.log(`Migration: backfilled HV Day into ${updated} preferred selection(s)`);
+    }
   } catch (error) {
     console.error('Migration error:', error);
   }
