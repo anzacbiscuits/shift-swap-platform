@@ -61,46 +61,44 @@ function SwapBoard({ user }) {
     setTimeout(rememberScroll, 400);
   };
 
+  // Build columns as plain ISO date strings using UTC iteration, so the calendar
+  // is timezone-proof (no DST off-by-one). Labels are rendered in UTC to match.
   const generateDates = () => {
     const dates = [];
-    const start = new Date(dateRange.start);
-    const end = new Date(dateRange.end);
-    let current = new Date(start);
+    const current = new Date(dateRange.start + 'T00:00:00Z');
+    const end = new Date(dateRange.end + 'T00:00:00Z');
 
     while (current <= end) {
-      dates.push(new Date(current));
-      current.setDate(current.getDate() + 1);
+      dates.push({
+        iso: current.toISOString().split('T')[0],
+        label: current.toLocaleDateString('en-GB', {
+          weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC'
+        })
+      });
+      current.setUTCDate(current.getUTCDate() + 1);
     }
     return dates;
   };
 
   const dates = generateDates();
 
-  const getShiftForDate = (registrarId, date) => {
+  const getShiftForDate = (registrarId, iso) => {
     const swap = swaps.find(s => s.registrar_id === registrarId);
     if (!swap) return null;
-    const dateStr = date.toISOString().split('T')[0];
-    return swap.giveShifts?.find(g => g.date === dateStr);
+    return swap.giveShifts?.find(g => g.date === iso);
   };
 
-  const isUnavailable = (registrarId, date) => {
+  // ISO date strings (YYYY-MM-DD) compare correctly with <= / >=, no Date/timezone needed.
+  const isUnavailable = (registrarId, iso) => {
     const swap = swaps.find(s => s.registrar_id === registrarId);
     if (!swap) return false;
-    return swap.unavailable?.some(u => {
-      const uStart = new Date(u.date_start);
-      const uEnd = new Date(u.date_end);
-      return date >= uStart && date <= uEnd;
-    });
+    return swap.unavailable?.some(u => u.date_start <= iso && iso <= u.date_end);
   };
 
-  const isPreferred = (registrarId, date) => {
+  const isPreferred = (registrarId, iso) => {
     const swap = swaps.find(s => s.registrar_id === registrarId);
     if (!swap) return false;
-    return swap.preferred?.some(p => {
-      const pStart = new Date(p.date_start);
-      const pEnd = new Date(p.date_end);
-      return date >= pStart && date <= pEnd;
-    });
+    return swap.preferred?.some(p => p.date_start <= iso && iso <= p.date_end);
   };
 
   const registrars = swaps.map(s => ({ id: s.registrar_id, name: s.name }));
@@ -163,7 +161,7 @@ function SwapBoard({ user }) {
               <th className="name-column">Registrar</th>
               {dates.map((date, idx) => (
                 <th key={idx} className="date-header">
-                  {date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  {date.label}
                 </th>
               ))}
             </tr>
@@ -175,9 +173,9 @@ function SwapBoard({ user }) {
                   <strong>{swap.name}</strong>
                 </td>
                 {dates.map((date, idx) => {
-                  const shift = getShiftForDate(swap.registrar_id, date);
-                  const unavail = isUnavailable(swap.registrar_id, date);
-                  const pref = isPreferred(swap.registrar_id, date);
+                  const shift = getShiftForDate(swap.registrar_id, date.iso);
+                  const unavail = isUnavailable(swap.registrar_id, date.iso);
+                  const pref = isPreferred(swap.registrar_id, date.iso);
 
                   return (
                     <td key={idx} className="date-cell">
